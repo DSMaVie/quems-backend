@@ -1,0 +1,13 @@
+{
+  "name": "quems-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:DSMaVie/quems-backend.git",
+  "author": "Max Vieweg",
+  "license": "AGPL",
+  "private": true,
+  "dependencies": {
+    "express": "^4.17.1",
+    "typescript": "^4.1.3"
+  }
+}
