@@ -29,18 +29,20 @@ The schemata below are subject to change.
 | Attribute | Type | additional Info | Description |
 | --------- | ---- | -------------- | ----------- |
 | ID | int | primary key | unique identifier for entry |
+| place | str |  | place where event is held, could be ref to some placeTable later as a lot of doubling|
 | reg | str |strong format constrains needed| regularity descriptor (see below table) |
-| outdated | bool || flag if data is outdated (1) or not(1) |
+| outdated | bool || flag if data is outdated info (1) or not(0) |
 | name_de | str || name of event in german |
 | name_en | str || name of event in english |
-| end | int | can be NaN | unix time the event ends |
+| end | int | can be NaN | unix time when the event ends |
 | desc_de | str || Description in german |
 | desc_en | str || Description in english |
-| assignees | str | format check in frontend | who is responsible |
+| assignees | str | format check in frontend | who is responsible, could be ref to people table later  |
 | nl | bool || newsletter flag |
 | insta | bool || insta flag |
 | fb_event | bool || flag for fb_event |
 | twitter | bool || twitter flag |
+| discord | bool || discord flag |
 
 #### regularity descriptor
 
@@ -58,7 +60,7 @@ Recurring Events usually follow specific patterns. A few examples:
 | ID | int | primary key | unique identifier for entry |
 | name_de | str || name of event in german |
 | name_en | str || name of event in english |
-| end | int | can be NaN | unix time the event ends |
+| end | int | can be NaN | unix time when the event ends |
 | desc_de | str || Description in german |
 | desc_en | str || Description in english |
 | assignees | str | format check in frontend | who is responsible |
@@ -66,3 +68,4 @@ Recurring Events usually follow specific patterns. A few examples:
 | insta | bool || insta flag |
 | fb_event | bool || flag for fb_event |
 | twitter | bool || twitter flag |
+| discord | bool || discord flag |
