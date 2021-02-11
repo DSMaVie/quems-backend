@@ -1,0 +1,5 @@
+{
+    "python.formatting.provider": "black",
+    "python.languageServer": "Pylance",
+    "python.pythonPath": "/home/mavie/.conda/envs/quems/bin/python"
+}
