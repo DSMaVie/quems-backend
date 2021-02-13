@@ -1,2 +1,9 @@
-node_modules/
-yarn-errors.log
+#editors
+.vscode
+
+#caches
+__pychache__
+*.pyc
+
+#databases should not be backed up through the repo
+*.sqlite

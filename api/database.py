@@ -1,64 +1,68 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Boolean, String, create_engine
-from Pathlib import Path
+from sqlalchemy import (
+    Column,
+    Integer,
+    Boolean,
+    String,
+    create_engine,
+    MetaData,
+    Table,
+    ForeignKey,
+)
+from pathlib import Path
 import os
 
-base = declarative_base()
 
-
-class Database:
+class EventDatabase:
     def __init__(self, path_to_db: Path):
         self.path = path_to_db
 
+        # load and wrap initialization vars
+        verbosity = bool(os.getenv("DB_VERBOSITY", False))
         db_url = "sqlite:///" + str(path_to_db.resolve())
-        self.engine = create_engine(db_url, echo=os.getenv("DB_VERBOSITY", False))
-        # TODO: actually create tables https://docs.sqlalchemy.org/en/13/orm/tutorial.html
 
+        # define engine and meta
+        self.engine = create_engine(db_url, echo=verbosity)
+        self.meta = MetaData()
 
-class EventTable(base):
-    __tablename__ = "events"
+        # define tables
+        self.events = Table(
+            "events",
+            self.meta,
+            Column("id", Integer, primary_key=True),
+            Column("start", Integer, nullable=False),
+            Column("end", Integer),
+            Column("data_id", Integer, ForeignKey("data.id"), nullable=False),
+            Column("last_edited", Integer, nullable=False),
+        )
+        self.data = Table(
+            "data",
+            self.meta,
+            Column("id", Integer, primary_key=True),
+            Column("place_id", Integer, ForeignKey("place.id")),
+            Column("reg_id", Integer, ForeignKey("regularity.id")),
+            Column("name_de", String, nullable=False),
+            Column("name_en", String, nullable=False),
+            Column("assignee", String, nullable=False),
+            Column("desc_de", String),
+            Column("desc_de", String),
+            Column("fb", Boolean, nullable=False),
+            Column("insta", Boolean, nullable=False),
+            Column("twitter", Boolean, nullable=False),
+            Column("discord", Boolean, nullable=False),
+            Column("nl", Boolean, nullable=False),
+        )
+        self.place = Table(
+            "place",
+            self.meta,
+            Column("id", Integer, primary_key=True),
+            Column("place", String, nullable=False, unique=True),
+        )
+        self.regularity = Table(
+            "regularity",
+            self.meta,
+            Column("id", Integer, primary_key=True),
+            Column("outdated", Boolean, nullable=False),  # needs additional columns
+        )
 
-    ID = Column(Integer, primary_key=True)
-    time = Column(Integer, nullable=False)
-    recurring = Column(Boolean, nullable=False)
-    dID = Column(Integer, nullable=False)
-
-
-class RecurringEvents(base):
-    __tablename__ = "recurring_events"
-
-    ID = Column(Integer, primary_key=True)
-    place = Column(String, nullable=False)
-    regularity = Column(String, nullable=False)
-    outdated = Column(Boolean, nullable=False)
-    name_de = Column(String, nullable=False)
-    name_en = Column(String, nullable=False)
-    end = Column(Integer)
-    desc_de = Column(String, nullable=False)
-    desc_en = Column(String, nullable=False)
-    assignees = Column(String, nullable=False)
-    nl = Column(Boolean, nullable=False)
-    insta = Column(Boolean, nullable=False)
-    fb = Column(Boolean, nullable=False)
-    twitter = Column(Boolean, nullable=False)
-    discord = Column(Boolean, nullable=False)
-
-
-class SingularEvents(base):
-    __tablename__ = "singular_events"
-
-    ID = Column(Integer, primary_key=True)
-    place = Column(String, nullable=False)
-    regularity = Column(String, nullable=False)
-    outdated = Column(Boolean, nullable=False)
-    name_de = Column(String, nullable=False)
-    name_en = Column(String, nullable=False)
-    end = Column(Integer)
-    desc_de = Column(String, nullable=False)
-    desc_en = Column(String, nullable=False)
-    assignees = Column(String, nullable=False)
-    nl = Column(Boolean, nullable=False)
-    insta = Column(Boolean, nullable=False)
-    fb = Column(Boolean, nullable=False)
-    twitter = Column(Boolean, nullable=False)
-    discord = Column(Boolean, nullable=False)
+        # commit tables to db if not there yet, else, bind to
+        self.meta.create_all(self.engine, checkfirst=True)
