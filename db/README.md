@@ -43,6 +43,7 @@ The schemata below are subject to change. To see the current definitions in code
 | fb_event | bool || flag for fb_event |
 | twitter | bool || twitter flag |
 | discord | bool || discord flag |
+| calendar | bool || calendar flag |
 
 ### regularity table
 

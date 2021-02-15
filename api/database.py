@@ -50,6 +50,7 @@ class EventDatabase:
             Column("twitter", Boolean, nullable=False),
             Column("discord", Boolean, nullable=False),
             Column("nl", Boolean, nullable=False),
+            Column("calendar", Boolean, nullable=False),
         )
         self.place = Table(
             "place",
