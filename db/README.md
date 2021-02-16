@@ -23,7 +23,8 @@ The schemata below are subject to change. To see the current definitions in code
 | start | int | | unix time of starting time |
 | end | int | nullable | unix time of starting time |
 | data_id | int | foreign key (data.id) | data ID, key of data table, where rest of data can be found |
-| last_edited | int | | time last edited |
+| created | int | | time of creation |
+| last_edited | int | nullable | time last edited, nullable if same as created |
 
 
 ### data table

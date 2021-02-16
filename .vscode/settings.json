@@ -1,5 +1,11 @@
 {
     "python.formatting.provider": "black",
+    "format.onSave": "True",
     "python.languageServer": "Pylance",
-    "python.pythonPath": "/home/mavie/.conda/envs/quems/bin/python"
+    "python.pythonPath": "/home/mavie/.conda/envs/quems/bin/python",
+    "cSpell.words": [
+        "assignee",
+        "getenv",
+        "insta"
+    ]
 }
