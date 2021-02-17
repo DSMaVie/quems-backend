@@ -1,6 +1,8 @@
 from sqlalchemy import *
 from pathlib import Path
-import datetime as dt
+from datetime import datetime as dt
+from dateutil.relativedelta import relativedelta
+from dateutil.utils import today
 import os
 
 
@@ -10,6 +12,7 @@ class EventDatabase:
 
         # load and wrap initialization vars
         debug = bool(os.getenv("DB_DEBUG", False))
+        need_dummy_data = bool(os.getenv("DB_FILL_WITH_DUMMIES", False))
         db_url = "sqlite:///" + str(path_to_db.resolve())
 
         # define engine and meta
@@ -25,21 +28,21 @@ class EventDatabase:
             ),  # if not explicitly set is autoincremented
             Column("start", Integer, nullable=False),
             Column("end", Integer),
-            Column("data_id", Integer, ForeignKey("data.id"), nullable=False),
+            Column("data_id", Integer, ForeignKey("data.data_id"), nullable=False),
             Column("created", Integer, nullable=False),
             Column("last_edited", Integer),
         )
         self.data = Table(
             "data",
             self.meta,
-            Column("id", Integer, primary_key=True),
-            Column("place_id", Integer, ForeignKey("place.id"), nullable=False),
-            Column("reg_id", Integer, ForeignKey("regularity.id")),
+            Column("data_id", Integer, primary_key=True),
+            Column("place_id", Integer, ForeignKey("place.place_id"), nullable=False),
+            Column("reg_id", Integer, ForeignKey("regularity.reg_id")),
             Column("name_de", String, nullable=False),
             Column("name_en", String, nullable=False),
             Column("assignee", String, nullable=False),
             Column("desc_de", String),
-            Column("desc_de", String),
+            Column("desc_en", String),
             Column("fb", Boolean, nullable=False),
             Column("insta", Boolean, nullable=False),
             Column("twitter", Boolean, nullable=False),
@@ -50,38 +53,43 @@ class EventDatabase:
         self.places = Table(
             "place",
             self.meta,
-            Column("id", Integer, primary_key=True),
-            Column("place", String, nullable=False, unique=True),
+            Column("place_id", Integer, primary_key=True),
+            Column("name", String, nullable=False, unique=True),
         )
         self.regularities = Table(
             "regularity",
             self.meta,
-            Column("id", Integer, primary_key=True),
+            Column("reg_id", Integer, primary_key=True),
             Column("outdated", Boolean, nullable=False),  # needs additional columns
         )
 
         # commit tables to db if not there yet, in any case, bind to engine
         self.meta.create_all(self.engine, checkfirst=True)
 
-        if debug:
+        if need_dummy_data:
             self.__fill_with_dummy_data()
 
     def __get_place_id(self, place: str):
-        stmt = select(self.places.id).where(self.places.name == place)
+        stmt = select([self.places.c.place_id]).where(self.places.c.name == place)  #
         stmt.compile()
         query_result = [row for row in self.engine.connect().execute(stmt)]
         if len(query_result) == 0:
             return None
         else:
-            return query_result[0]
+            return query_result[0][0]
 
     def __insert_place(self, place: str):
-        stmt = insert(self.places).values(place=place).returning(self.places.id)
+        stmt = insert(self.places).values(name=place)
         stmt.compile()
-        with self.engine.connect() as conn:
-            new_id = conn.execute((stmt))[0]
-            conn.commit()
-        return new_id
+        self.engine.execute(stmt)
+        return self.__get_place_id(place)
+
+    def __get_data_id(self, other_data):
+        # returns last id right now
+        stmt = select([self.data.c.data_id])
+        stmt.compile()
+        query_result = self.engine.execute(stmt)
+        return list(query_result)[-1][0]
 
     def __insert_data(
         self,
@@ -98,63 +106,57 @@ class EventDatabase:
         calendar: bool = False,
         discord: bool = False,
     ):
-
+        value_dict = {
+            "name_de": name_de,
+            "name_en": name_en,
+            "place_id": place_id,
+            "assignee": assignee,
+            "desc_de": desc_de,
+            "desc_en": desc_en,
+            "insta": insta,
+            "fb": fb,
+            "nl": nl,
+            "twitter": twitter,
+            "discord": discord,
+            "calendar": calendar,
+        }
         # get sql statement
-        data_stmt = (
-            insert(self.data)
-            .values(
-                {
-                    "name_de": name_de,
-                    "name_en": name_en,
-                    "place_id": place_id,
-                    "assignee": assignee,
-                    "desc_de": desc_de,
-                    "desc_en": desc_en,
-                    "insta": insta,
-                    "fb": fb,
-                    "nl": nl,
-                    "twitter": twitter,
-                    "discord": discord,
-                    "calendar": calendar,
-                }
-            )
-            .returning(self.data.id)
-        )
+        data_stmt = insert(self.data).values(value_dict)
 
         # and execute on db
-        with self.engine.connect() as conn:
-            new_id = conn.execute(data_stmt)[0]
-            conn.commit()
+        self.engine.execute(data_stmt)
 
         # return id
-        return new_id
+        return self.__get_data_id({})
+
+    def __get_event_id(self):
+        stmt = select([self.events.c.id])
+        result_query = self.engine.connect().execute(stmt)
+        return list(result_query)[-1][0]
 
     def __insert_event(self, start: int, data_id: int, end: int = None):
         # compile statement
-        events_stmt = (
-            insert(events)
-            .values(
-                {"start": start, "end": end, "data_id": data_id, "created": dt.now()}
-            )
-            .returning(self.event.id)
+        events_stmt = insert(self.events).values(
+            {"start": start, "end": end, "data_id": data_id, "created": dt.now()}
         )
         # execute
-        with self.engine.connect() as conn:
-            new_id = conn.execute(events_stmt)[0]
-            conn.commit()
-        return new_id
+        self.engine.connect().execute(events_stmt)
+
+        return self.__get_event_id()
+
+    def __get_regularity_id(self, other_reg_data):
+        # incomplete should identify reg id base on other data
+        # right now returns last id
+        stmt = select([self.regularities.c.reg_id])
+        stmt.compile()
+        query_result = self.engine.execute(stmt)
+        return list(query_result)[-1][0]
 
     def __insert_regularity(self, outdated: bool = False):
-        stmt = (
-            insert(self.regularities)
-            .values(outdated=outdated)
-            .returning(self.regularities.id)
-        )
+        stmt = insert(self.regularities).values(outdated=outdated)
         stmt.compile()
-        with self.engine.connect() as conn:
-            new_id = conn.execute((stmt))[0]
-            conn.commit()
-        return new_id
+        self.engine.execute(stmt)
+        return self.__get_regularity_id({})
 
     def __fill_with_dummy_data(self):
         # some templates
@@ -176,13 +178,13 @@ class EventDatabase:
         ]
         reg_ids = []
         for template in templates:
-            reg_ids.push(self.insert_new_template(**template))
+            reg_ids.append(self.insert_new_template(**template))
 
         # some reg events
         for reg_id in reg_ids:
-            start = dt.today()
-            start2 = start + dt.timedelta(days=1)
-            end = start + dt.timedelta(days=1)
+            start = today()
+            start2 = start + relativedelta(days=+1)
+            end = start + relativedelta(days=+1)
             self.insert_new_regular_event(reg_id, start=start.timestamp())
             self.insert_new_regular_event(
                 reg_id, start=start2.timestamp(), end=end.timestamp()
@@ -192,9 +194,15 @@ class EventDatabase:
         self.insert_new_singular_event(
             name_de="Mitgliederversammlung",
             name_en="general meeting",
-            start=(dt.today() + dt.timedelta(months=1)).timestamp(),
+            assignee="Annegreat",
+            start=(today() + relativedelta(months=+1)).timestamp(),
         )
-        raise NotImplementedError
+
+        for table in [self.events, self.data, self.places, self.regularities]:
+            print("table:", table.fullname)
+            stmt = select([table]).compile()
+            for row in self.engine.execute(stmt):
+                print(dict(row))
 
     def insert_new_singular_event(
         self,
@@ -280,3 +288,23 @@ class EventDatabase:
     def insert_new_regular_event(self, template_id: int, start: int, end: int = None):
         event_id = self.__insert_event(start=start, data_id=template_id, end=end)
         return event_id
+
+    def get_event(self, event_id: int):
+        stmt = (
+            select(
+                [
+                    self.data.c.name_de,
+                    self.events.c.start,
+                    self.events.c.end,
+                    self.events.c.id,
+                    self.events.c.end,
+                    self.places.c.name,
+                ]
+            )  # natural joins very difficult so this dirty solution
+            .where(self.events.c.id == event_id)
+            .where(self.events.c.data_id == self.data.c.data_id)
+            .where(self.data.c.place_id == self.places.c.place_id)
+            .compile()
+        )
+        for event in self.engine.connect().execute(stmt):
+            return dict(event)
