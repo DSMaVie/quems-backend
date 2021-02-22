@@ -1,11 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
-from schema import Event, Data, Place, Regularity, Base
-from typing import Dict, Union
-from datetime import datetime as dt
-from dateutil.relativedelta import relativedelta
-from dateutil.utils import today
+from schema import Event, Data, Place, Regularity, BaseTable
+
+# from datetime import datetime as dt
+# from dateutil.relativedelta import relativedelta
+# from dateutil.utils import today
 import os
 
 
@@ -18,23 +18,24 @@ class QueryManager:
         # define engine and meta
         db_url = "sqlite:///" + str(path_to_db.resolve())
         self.engine = create_engine(db_url, echo=debug)
-        self.meta = Base.metadata(self.engine)
+        self.meta = BaseTable.metadata
         self.session = sessionmaker(self.engine, future=True)
+
+        self.meta.create_all(bind=self.engine)
 
     def add_singular_event(self, *args, **kwargs):
         with self.session.begin() as sess:
-            if (place_id := Place.get_id(sess, place)) is None:
+            if (place_id := Place.get_id(sess, kwargs["place"])) is None:
                 sess.add(Place(name=place_id))
-                place_id = Place.get_id(sess, place)
+                place_id = Place.get_id(sess, kwargs["place"])
 
-            sess.add(
-                Data(**kwargs, place_id=place_id)
-            )  # might need kwarg filtering
+            sess.add(Data(**kwargs, place_id=place_id))  # might need kwarg filtering
             data_id = Data.get_id(sess, **kwargs)
 
             sess.add(Event(**kwargs, data_id=data_id))
             event_id = Event.get_id(sess, **kwargs)
             return event_id
+
 
 # DEPRECATED CODE BELOW
 # class EventDatabase:
