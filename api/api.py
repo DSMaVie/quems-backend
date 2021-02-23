@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 from pathlib import Path
-from database import EventDatabase
+from query_manger import QueryManager
 
 import os
 
@@ -16,7 +16,7 @@ load_dotenv(env_path, verbose=env_verbose)
 db_path = Path(os.getenv("DB_LOCATION"))
 
 # load db and api sever
-db = EventDatabase(db_path)
+db = QueryManager(db_path)
 
 
 @api.route("/")
@@ -26,9 +26,19 @@ def hello_world():
 
 @api.route("/events", methods=["GET", "POST"])
 def events():
-    results = []
-    for i in range(4):
-        results.append(db.get_event(i + 1))
+    results = db.get_all_events()
+    return jsonify(results)
+
+
+@api.route("/templates", methods=["GET", "POST"])
+def events():
+    results = db.get_all_events()
+    return jsonify(results)
+
+
+@api.route("/places", methods=["GET", "POST"])
+def events():
+    results = db.get_all_places()
     return jsonify(results)
 
 
