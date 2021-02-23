@@ -31,13 +31,13 @@ def events():
 
 
 @api.route("/templates", methods=["GET", "POST"])
-def events():
+def templates():
     results = db.get_all_events()
     return jsonify(results)
 
 
 @api.route("/places", methods=["GET", "POST"])
-def events():
+def places():
     results = db.get_all_places()
     return jsonify(results)
 

@@ -4,14 +4,23 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, select
 
 
 @as_declarative()
-class BaseTable(ABC):
+class BaseTable:
     id = Column(Integer, primary_key=True)
 
     @classmethod
     def get_id(cls, session, **kwargs):
-        stmt = select(cls.id).where(cls(**kwargs))
+        stmt = select(cls.id).filter_by(**kwargs)
         result = session.execute(stmt)
         return result.scalar()
+
+    @classmethod
+    def drop_non_columns(cls, dict):
+        cols = cls.__table__.columns.keys()
+        return {key: dict[key] for key in dict if key in cols}
+
+    def to_dict(self):
+        cols = self.__table__.columns.keys()
+        return {key: getattr(self, key) for key in cols}
 
 
 class Event(BaseTable):
@@ -20,12 +29,8 @@ class Event(BaseTable):
     start = Column(Integer, nullable=False)
     end = Column(Integer)
     data_id = Column(Integer, ForeignKey("data.id"), nullable=False)
-    created = Column(Integer, nullable=False)
+    created = Column(Integer, nullable=False)  # when using datetime set default to now
     last_edited = Column(Integer)
-
-    @classmethod
-    def get_event(cls, id, **kwargs):
-        raise NotImplementedError
 
 
 class Data(BaseTable):
@@ -38,22 +43,18 @@ class Data(BaseTable):
     name_en = Column(String)
     desc_de = Column(String)
     desc_en = Column(String)
-    fb = Column(Boolean, nullable=False)
-    insta = Column(Boolean, nullable=False)
-    twitter = Column(Boolean, nullable=False)
-    discord = Column(Boolean, nullable=False)
-    nl = Column(Boolean, nullable=False)
-    calendar = Column(Boolean, nullable=False)
+    fb = Column(Boolean, nullable=False, default=False)
+    insta = Column(Boolean, nullable=False, default=False)
+    twitter = Column(Boolean, nullable=False, default=False)
+    discord = Column(Boolean, nullable=False, default=False)
+    nl = Column(Boolean, nullable=False, default=False)
+    calendar = Column(Boolean, nullable=False, default=False)
 
 
 class Place(BaseTable):
     __tablename__ = "places"
 
     name = Column(String, nullable=False)
-
-    @classmethod
-    def get_place(cls, session, place_id: str):
-        raise NotImplementedError
 
 
 class Regularity(BaseTable):

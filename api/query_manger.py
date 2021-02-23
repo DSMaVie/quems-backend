@@ -26,29 +26,33 @@ class QueryManager:
 
     def add_singular_event(self, *args, **kwargs):
         with self.session.begin() as sess:
-            if (place_id := Place.get_id(sess, kwargs["place"])) is None:
-                sess.add(Place(name=place_id))
-                place_id = Place.get_id(sess, kwargs["place"])
+            if (place_id := Place.get_id(sess, name=kwargs["place"])) is None:
+                sess.add(Place(name=kwargs["place"]))
+                place_id = Place.get_id(sess, name=kwargs["place"])
 
-            sess.add(Data(**kwargs, place_id=place_id))  # might need kwarg filtering
-            data_id = Data.get_id(sess, **kwargs)
+            data_kwargs = Data.drop_non_columns(kwargs)
+            sess.add(Data(**data_kwargs, place_id=place_id))
+            data_id = Data.get_id(sess, **data_kwargs)
 
-            sess.add(Event(**kwargs, data_id=data_id, created=dt.now()))
-            event_id = Event.get_id(sess, **kwargs)
+            event_kwargs = Event.drop_non_columns(kwargs)
+            sess.add(Event(**event_kwargs, data_id=data_id, created=dt.now()))
+            event_id = Event.get_id(sess, **event_kwargs)
             return event_id
 
     def add_template(self, *args, **kwargs):
         with self.session.begin() as sess:
             if (place_id := Place.get_id(sess, name=kwargs["place"])) is None:
-                sess.add(Place(name=place_id))
+                sess.add(Place(name=kwargs["place"]))
                 place_id = Place.get_id(sess, name=kwargs["place"])
 
             sess.add(Regularity(outdated=False))
             reg_id = Regularity.get_id(sess, outdated=False)
+
+            data_kwargs = Data.drop_non_columns(kwargs)
             sess.add(
-                Data(**kwargs, place_id=place_id, reg_id=reg_id)
+                Data(**data_kwargs, place_id=place_id, reg_id=reg_id)
             )  # might need kwarg filtering
-            data_id = Data.get_id(sess, **kwargs)
+            data_id = Data.get_id(sess, **data_kwargs)
             return data_id
 
     def add_regular_event(self, id, *args, **kwargs):
@@ -56,7 +60,7 @@ class QueryManager:
             sess.add(Event(data_id=id, **kwargs, created=dt.now()))
 
     def __load_dummy_data(self):
-        self.add_singular_event(
+        s1_id = self.add_singular_event(
             name_de="Mitgliederversammlung",
             start=dt.now() + relativedelta(days=+1),
             assignee="Vorstand",
@@ -65,7 +69,7 @@ class QueryManager:
             nl=True,
             calendar=True,
         )
-        self.add_singular_event(
+        s2_id = self.add_singular_event(
             name_de="Workshop: ist queeres Python anders?",
             name_en="Workshop: is queer python different?",
             start=dt.now() + relativedelta(days=+2),
@@ -111,8 +115,8 @@ class QueryManager:
                 .join(Data, Data.id == Event.data_id)
                 .join(Place, Place.id == Data.place_id)
             )
-            result = sess.execute(stmt).all()
-            return [dict(row) for row in result]
+            result = sess.execute(stmt).scalars()
+            return [row.to_dict() for row in result]
 
     def get_all_templates(self):
         with self.session.begin() as sess:
@@ -121,11 +125,11 @@ class QueryManager:
                 .join(Place, Place.id == Data.place_id)
                 .join(Regularity, Regularity.id == Data.reg_id)
             )
-            result = sess.execute(stmt)
-            return [dict(row) for row in result]
+            result = sess.execute(stmt).scalars()
+            return [row.to_dict() for row in result]
 
     def get_all_places(self):
         with self.session.begin() as sess:
             stmt = select(Place.name)
-            result = sess.execute(stmt)
-            return [dict(row) for row in result]
+            result = sess.execute(stmt).scalars()
+            return [row.to_dict() for row in result]
