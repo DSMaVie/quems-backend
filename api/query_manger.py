@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, text, select
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
 from schema import Event, Data, Place, Regularity, BaseTable
@@ -110,26 +110,20 @@ class QueryManager:
 
     def get_all_events(self):
         with self.session.begin() as sess:
-            stmt = (
-                select(Event)
-                .join(Data, Data.id == Event.data_id)
-                .join(Place, Place.id == Data.place_id)
+            stmt = text(
+                "SELECT * FROM (events JOIN data ON (data.id == events.data_id)) JOIN places ON (data.place_id = places.id)"
             )
-            result = sess.execute(stmt).scalars()
-            return [row.to_dict() for row in result]
+            result = sess.execute(stmt)
+            return [dict(row) for row in result]
 
     def get_all_templates(self):
         with self.session.begin() as sess:
-            stmt = (
-                select(Data)
-                .join(Place, Place.id == Data.place_id)
-                .join(Regularity, Regularity.id == Data.reg_id)
-            )
+            stmt = text("SELECT * FROM data JOIN places ON (data.place_id = places.id)")
             result = sess.execute(stmt).scalars()
-            return [row.to_dict() for row in result]
+            return [dict(row) for row in result]
 
     def get_all_places(self):
         with self.session.begin() as sess:
             stmt = select(Place.name)
             result = sess.execute(stmt).scalars()
-            return [row.to_dict() for row in result]
+            return list(result)

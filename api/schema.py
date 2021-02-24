@@ -1,4 +1,3 @@
-from abc import ABC
 from sqlalchemy.orm import as_declarative
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, select
 
