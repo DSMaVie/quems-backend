@@ -108,6 +108,27 @@ class QueryManager:
                 end=dt.now() + relativedelta(days=(index + 2) * 7, hours=+2),
             )
 
+    @staticmethod
+    def unpack_event(event):
+        event_dict = event.to_dict()
+        data_dict = event_dict["data"].to_dict()
+        place_dict = {"place": data_dict["place"].to_dict()["name"]}
+
+        if data_dict["reg_id"] is not None:
+            reg_dict = data_dict["reg"].to_dict()
+            del data_dict["reg"]
+            del data_dict["reg_id"]
+
+        del event_dict["data"]
+        del event_dict["data_id"]
+        del data_dict["place"]
+        del data_dict["place_id"]
+
+        return event_dict | place_dict | data_dict
+
+    def _with_session(self, func):
+        raise NotImplementedError
+
     def get_all_events(self):
         with self.session.begin() as sess:
             stmt = text(
