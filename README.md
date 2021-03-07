@@ -10,5 +10,7 @@ In any way navigate to the project folder with a shell and execute `conda env cr
 Substitute `<environment-name>` with a suitable name for your environment, e.g. `quems`.
 
 Of course, you can use any other python env manager. Just look into `requirements.txt` for installed packages.
+Please update the `requirements.txt` when installing new packages (`pip freeze > requirements.txt`).
+
 ## Starting Dev Server
 if your env is setup you can start the dev server with `python api/api.py`.
