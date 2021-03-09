@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine, text, select
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
+from functools import wraps
+from inspect import getargspec
+from typing import Callable
 from schema import Event, Data, Place, Regularity, BaseTable
 from datetime import datetime as dt
 from dateutil.relativedelta import relativedelta
@@ -24,40 +27,78 @@ class QueryManager:
         if need_dummy_data:
             self.__load_dummy_data()
 
-    def add_singular_event(self, *args, **kwargs):
-        with self.session.begin() as sess:
-            if (place_id := Place.get_id(sess, name=kwargs["place"])) is None:
-                sess.add(Place(name=kwargs["place"]))
-                place_id = Place.get_id(sess, name=kwargs["place"])
+    def with_session(func: Callable):
+        """wraps a session around the func
 
-            data_kwargs = Data.drop_non_columns(kwargs)
-            sess.add(Data(**data_kwargs, place_id=place_id))
-            data_id = Data.get_id(sess, **data_kwargs)
+        Args:
+            func (Callable): func needs as signature either
+            (self, session, *args, **kwargs) or (session, *args, **kwargs).
+        """
 
-            event_kwargs = Event.drop_non_columns(kwargs)
-            sess.add(Event(**event_kwargs, data_id=data_id, created=dt.now()))
-            event_id = Event.get_id(sess, **event_kwargs)
-            return event_id
+        @wraps(func)
+        def wrapped_with_session(self, *args, **kwargs):
+            with self.session.begin() as sess:
+                if "self" in getargspec(func).args:
+                    return func(self, sess, *args, **kwargs)
+                else:
+                    return func(sess, *args, **kwargs)
 
-    def add_template(self, *args, **kwargs):
-        with self.session.begin() as sess:
-            if (place_id := Place.get_id(sess, name=kwargs["place"])) is None:
-                sess.add(Place(name=kwargs["place"]))
-                place_id = Place.get_id(sess, name=kwargs["place"])
+        return wrapped_with_session
 
-            sess.add(Regularity(outdated=False))
-            reg_id = Regularity.get_id(sess, outdated=False)
+    @with_session
+    def add_singular_event(sess, *args, **kwargs):
+        if (place_id := Place.get_id(sess, name=kwargs["place"])) is None:
+            sess.add(Place(name=kwargs["place"]))
+            place_id = Place.get_id(sess, name=kwargs["place"])
 
-            data_kwargs = Data.drop_non_columns(kwargs)
-            sess.add(
-                Data(**data_kwargs, place_id=place_id, reg_id=reg_id)
-            )  # might need kwarg filtering
-            data_id = Data.get_id(sess, **data_kwargs)
-            return data_id
+        data_kwargs = Data.drop_non_columns(kwargs)
+        sess.add(Data(**data_kwargs, place_id=place_id))
+        data_id = Data.get_id(sess, **data_kwargs)
 
-    def add_regular_event(self, id, *args, **kwargs):
-        with self.session.begin() as sess:
-            sess.add(Event(data_id=id, **kwargs, created=dt.now()))
+        event_kwargs = Event.drop_non_columns(kwargs)
+        sess.add(Event(**event_kwargs, data_id=data_id, created=dt.now()))
+        event_id = Event.get_id(sess, **event_kwargs)
+        return event_id
+
+    @with_session
+    def add_template(sess, *args, **kwargs):
+        if (place_id := Place.get_id(sess, name=kwargs["place"])) is None:
+            sess.add(Place(name=kwargs["place"]))
+            place_id = Place.get_id(sess, name=kwargs["place"])
+
+        sess.add(Regularity(outdated=False))
+        reg_id = Regularity.get_id(sess, outdated=False)
+
+        data_kwargs = Data.drop_non_columns(kwargs)
+        sess.add(
+            Data(**data_kwargs, place_id=place_id, reg_id=reg_id)
+        )  # might need kwarg filtering
+        data_id = Data.get_id(sess, **data_kwargs)
+        return data_id
+
+    @with_session
+    def add_regular_event(sess, id, *args, **kwargs):
+        sess.add(Event(data_id=id, **kwargs, created=dt.now()))
+
+    @with_session
+    def get_all_events(sess):
+        stmt = text(
+            "SELECT * FROM (events JOIN data ON (data.id == events.data_id)) JOIN places ON (data.place_id = places.id)"
+        )
+        result = sess.execute(stmt)
+        return [dict(row) for row in result]
+
+    @with_session
+    def get_all_templates(sess):
+        stmt = text("SELECT * FROM data JOIN places ON (data.place_id = places.id)")
+        result = sess.execute(stmt).scalars()
+        return [dict(row) for row in result]
+
+    @with_session
+    def get_all_places(sess):
+        stmt = select(Place.name)
+        result = sess.execute(stmt).scalars()
+        return list(result)
 
     def __load_dummy_data(self):
         s1_id = self.add_singular_event(
@@ -125,26 +166,3 @@ class QueryManager:
         del data_dict["place_id"]
 
         return event_dict | place_dict | data_dict
-
-    def _with_session(self, func):
-        raise NotImplementedError
-
-    def get_all_events(self):
-        with self.session.begin() as sess:
-            stmt = text(
-                "SELECT * FROM (events JOIN data ON (data.id == events.data_id)) JOIN places ON (data.place_id = places.id)"
-            )
-            result = sess.execute(stmt)
-            return [dict(row) for row in result]
-
-    def get_all_templates(self):
-        with self.session.begin() as sess:
-            stmt = text("SELECT * FROM data JOIN places ON (data.place_id = places.id)")
-            result = sess.execute(stmt).scalars()
-            return [dict(row) for row in result]
-
-    def get_all_places(self):
-        with self.session.begin() as sess:
-            stmt = select(Place.name)
-            result = sess.execute(stmt).scalars()
-            return list(result)
