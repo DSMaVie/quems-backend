@@ -1,4 +1,4 @@
-from sqlalchemy.orm import as_declarative
+from sqlalchemy.orm import as_declarative, relationship
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, select
 
 
@@ -27,16 +27,24 @@ class Event(BaseTable):
     # TODO: sqlalchemy has datetime datatype which is represented as string buttype checked for datetime python obj before insertion
     start = Column(Integer, nullable=False)
     end = Column(Integer)
-    data_id = Column(Integer, ForeignKey("data.id"), nullable=False)
     created = Column(Integer, nullable=False)  # when using datetime set default to now
     last_edited = Column(Integer)
+
+    data_id = Column(Integer, ForeignKey("data.id"), nullable=False)
+    data = relationship(
+        "Data", uselist=False, foreign_keys=data_id
+    )  # , primary_join=Data.id == Event.data_id )
+
+    def unpack(self):
+        result_dict = self.to_dict()
+        del result_dict["data_id"]
+        result_dict |= self.data.unpack()
+        return result_dict
 
 
 class Data(BaseTable):
     __tablename__ = "data"
 
-    place_id = Column(Integer, ForeignKey("places.id"), nullable=False)
-    reg_id = Column(Integer, ForeignKey("regularities.id"))
     assignee = Column(String, nullable=False)
     name_de = Column(String, nullable=False)
     name_en = Column(String)
@@ -48,6 +56,28 @@ class Data(BaseTable):
     discord = Column(Boolean, nullable=False, default=False)
     nl = Column(Boolean, nullable=False, default=False)
     calendar = Column(Boolean, nullable=False, default=False)
+
+    place_id = Column(Integer, ForeignKey("places.id"), nullable=False)
+    place = relationship(
+        "Place", uselist=False, foreign_keys=place_id
+    )  # , primary_join=Place.id == Data.place_id)
+
+    reg_id = Column(Integer, ForeignKey("regularities.id"))
+    reg = relationship(
+        "Regularity", uselist=False, foreign_keys=reg_id
+    )  # , primary_join=Regularity.id == Data.reg_id)
+
+    def unpack(self):
+        result_dict = self.to_dict()
+
+        del result_dict["place_id"]
+        del result_dict["reg_id"]
+
+        result_dict |= {"place": self.place.name}
+        if self.reg_id is not None:
+            result_dict |= self.reg.to_dict()
+
+        return result_dict
 
 
 class Place(BaseTable):

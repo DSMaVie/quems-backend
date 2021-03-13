@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
 from pathlib import Path
 from query_manger import QueryManager
@@ -7,6 +8,8 @@ import os
 
 # TODO: make own class
 api = Flask(__name__)
+CORS(api)
+
 
 env_path = Path("./dev.env")
 env_verbose = True

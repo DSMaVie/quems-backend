@@ -82,17 +82,15 @@ class QueryManager:
 
     @with_session
     def get_all_events(sess):
-        stmt = text(
-            "SELECT * FROM (events JOIN data ON (data.id == events.data_id)) JOIN places ON (data.place_id = places.id)"
-        )
-        result = sess.execute(stmt)
-        return [dict(row) for row in result]
+        stmt = select(Event)
+        result = sess.execute(stmt).scalars()
+        return [event.unpack() for event in result]
 
     @with_session
     def get_all_templates(sess):
-        stmt = text("SELECT * FROM data JOIN places ON (data.place_id = places.id)")
+        stmt = select(Data).where(Data.reg_id != None)
         result = sess.execute(stmt).scalars()
-        return [dict(row) for row in result]
+        return [data.unpack() for data in result]
 
     @with_session
     def get_all_places(sess):
@@ -148,21 +146,3 @@ class QueryManager:
                 start=dt.now() + relativedelta(days=(index + 2) * 7),
                 end=dt.now() + relativedelta(days=(index + 2) * 7, hours=+2),
             )
-
-    @staticmethod
-    def unpack_event(event):
-        event_dict = event.to_dict()
-        data_dict = event_dict["data"].to_dict()
-        place_dict = {"place": data_dict["place"].to_dict()["name"]}
-
-        if data_dict["reg_id"] is not None:
-            reg_dict = data_dict["reg"].to_dict()
-            del data_dict["reg"]
-            del data_dict["reg_id"]
-
-        del event_dict["data"]
-        del event_dict["data_id"]
-        del data_dict["place"]
-        del data_dict["place_id"]
-
-        return event_dict | place_dict | data_dict
