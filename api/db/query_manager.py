@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import wraps
 from inspect import getargspec
 from typing import Callable
-from schema import Event, Data, Place, Regularity, BaseTable
+from .schema import Event, Data, Place, Regularity, BaseTable
 from datetime import datetime as dt
 from dateutil.relativedelta import relativedelta
 import os
