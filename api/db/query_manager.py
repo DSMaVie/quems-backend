@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, text, select
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
 from functools import wraps
-from inspect import getargspec
+from inspect import signature
 from typing import Callable
 from .schema import Event, Data, Place, Regularity, BaseTable
 from datetime import datetime as dt
@@ -38,7 +38,7 @@ class QueryManager:
         @wraps(func)
         def wrapped_with_session(self, *args, **kwargs):
             with self.session.begin() as sess:
-                if "self" in getargspec(func).args:
+                if "self" in signature(func).parameters:
                     return func(self, sess, *args, **kwargs)
                 else:
                     return func(sess, *args, **kwargs)

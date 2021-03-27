@@ -5,7 +5,20 @@
     "python.pythonPath": "/home/mavie/.conda/envs/quems/bin/python",
     "cSpell.words": [
         "assignee",
+        "dotenv",
         "getenv",
-        "insta"
-    ]
+        "insta",
+        "jsonify",
+        "sqlite"
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "files.exclude": {
+        "**/.git": true,
+        "**/__pycache__": true
+    }
 }
