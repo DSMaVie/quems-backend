@@ -14,7 +14,9 @@ CORS(api)
 load_dotenv(verbose=True)
 
 # wrap env vars in objects if necessary
-db_path = Path(os.getenv("DB_LOCATION"))
+db_loc = Path(os.getenv("DB_LOCATION"))
+db_name = os.getenv("DB_NAME")
+db_path = (db_loc / db_name).resolve()
 
 # load db manager
 db = QueryManager(db_path)

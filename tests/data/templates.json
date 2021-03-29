@@ -1,0 +1,17 @@
+[
+    {
+        "name_de":"Queercafe",
+        "name_en":"Queercafe",
+        "desc_de":"Kaffee und Kuchen",
+        "assignee":"Helga",
+        "place":"Online",
+        "insta":true,
+        "discord":true
+    },
+    {
+        "name_de":"Vorstandssitzung",
+        "desc_de":"geschlossene Sitzung, nur fuer Vorstandsmitglieder",
+        "place":"Bei Jutta",
+        "assignee":"Jutta"
+    }
+]

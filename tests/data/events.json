@@ -1,0 +1,20 @@
+[
+    {
+        "name_de": "Mitgliederversammlung",
+        "assignee":"Vorstand",
+        "place": "Queerreferat",
+        "desc_de": "eine wilde Beschreibung taucht auf ...",
+        "nl": true,
+        "calendar": true
+    },
+    {
+        "name_de": "Workshop: ist queeres Python anders?",
+        "name_en":"Workshop: is queer python different?",
+        "assignee":"Alex",
+        "place":"Queerreferat",
+        "desc_de":"In diesem Workshop gehen wir der Frage nach, ob Python, dass von queeren Menschen geschrieben wird linguistisch different von hetero-python ist.",
+        "insta":true,
+        "nl":true,
+        "calendar":true
+    }
+]

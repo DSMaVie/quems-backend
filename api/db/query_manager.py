@@ -99,6 +99,7 @@ class QueryManager:
         return list(result)
 
     def __load_dummy_data(self):
+        # TODO: load test data
         s1_id = self.add_singular_event(
             name_de="Mitgliederversammlung",
             start=dt.now() + relativedelta(days=+1),

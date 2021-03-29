@@ -5,5 +5,8 @@
 __pychache__
 *.pyc
 
+#testing
+.pytest_cache
+
 #databases should not be backed up through the repo
 *.sqlite
