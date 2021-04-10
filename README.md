@@ -13,4 +13,4 @@ Of course, you can use any other python env manager. Just look into `requirement
 Please update the `requirements.txt` when installing new packages (`pip freeze > requirements.txt`).
 
 ## Starting Dev Server
-if your env is setup you can start the dev server with `python api/api.py`.
+if your env is setup you can start the dev server with `python -m flask run`.
